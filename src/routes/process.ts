@@ -7,34 +7,9 @@ import { connectToDatabase, connectToOrgsDatabase, connectToPrismaDatabase } fro
 import { getChannelVideos, getChannelInfo } from '../lib/youtube';
 import { getVideoTranscriptWithData, cleanTranscript, chunkTextWithMetadata } from '../lib/youtube';
 import { storeTranscriptChunks, storeChannelContext } from '../lib/rag';
+import { jobStore, type ProcessingJob } from '../lib/job-store';
 
 const process = new Hono();
-
-// Job storage (in production, use Redis or a proper job queue)
-interface ProcessingJob {
-  jobId: string;
-  creatorId: string;
-  creatorSlug: string;
-  channelUrl: string;
-  chatUrl: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-  progress: {
-    current: number;
-    total: number;
-  };
-  result?: {
-    processedVideos: number;
-    totalChunks: number;
-    failedVideos: number;
-  };
-  error?: string;
-  createdAt: Date;
-  startedAt?: Date;
-  completedAt?: Date;
-}
-
-// In-memory job storage (replace with MongoDB or Redis in production)
-const jobs = new Map<string, ProcessingJob>();
 
 // Processing timeout: 30 minutes
 const PROCESSING_TIMEOUT_MS = 30 * 60 * 1000;
@@ -311,7 +286,7 @@ process.post('/creator', async (c) => {
       createdAt: new Date()
     };
 
-    jobs.set(jobId, job);
+    await jobStore.set(jobId, job);
 
     structuredLogger.info({
       jobId,
@@ -385,7 +360,7 @@ process.get('/status/:jobId', async (c) => {
   try {
     const { jobId } = c.req.param();
 
-    const job = jobs.get(jobId);
+    const job = await jobStore.get(jobId);
 
     if (!job) {
       const errorResponse: ApiResponse = {
@@ -468,13 +443,13 @@ async function processVideosAsync(
   forceRefresh: boolean,
   customDescription?: string
 ) {
-  const job = jobs.get(jobId);
+  const job = await jobStore.get(jobId);
   if (!job) return;
 
   try {
     job.status = 'processing';
     job.startedAt = new Date();
-    jobs.set(jobId, job);
+    await jobStore.set(jobId, job);
 
     structuredLogger.info({ jobId, creatorId, channelUrl }, 'Processing started');
 
@@ -535,7 +510,7 @@ async function processVideosAsync(
 
     // Set progress total (even if 0 videos)
     job.progress.total = videos.length;
-    jobs.set(jobId, job);
+    await jobStore.set(jobId, job);
 
     if (videos.length > 0) {
       structuredLogger.info({
@@ -807,7 +782,7 @@ async function processVideosAsync(
 
         // Update progress
         job.progress.current = i + 1;
-        jobs.set(jobId, job);
+        await jobStore.set(jobId, job);
 
         structuredLogger.info({
           jobId,
@@ -985,7 +960,7 @@ async function processVideosAsync(
       totalChunks,
       failedVideos
     };
-    jobs.set(jobId, job);
+    await jobStore.set(jobId, job);
 
     structuredLogger.info({
       jobId,
@@ -1070,7 +1045,7 @@ async function processVideosAsync(
     job.status = 'failed';
     job.error = error instanceof Error ? error.message : 'Unknown error';
     job.completedAt = new Date();
-    jobs.set(jobId, job);
+    await jobStore.set(jobId, job);
 
     // Write failed status directly to Prisma database
     try {
