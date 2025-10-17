@@ -47,13 +47,13 @@ export async function storeChannelContext(
     logger.debug('Added channel description chunk', { length: channelData.description.length });
   }
 
-  // 2. Custom description (from user input - optional, max 1000 chars)
+  // 2. Custom description - SKIP embedding in Pinecone
+  // Custom description should ONLY be in static system prompt (stored in Creator document)
+  // NOT searchable via tools to avoid confusion
   if (channelData.customDescription && channelData.customDescription.length > 50) {
-    contextChunks.push({
-      text: `About this channel: ${channelData.customDescription}`,
-      contentType: 'custom_description'
+    logger.info('Custom description provided but NOT embedding in Pinecone (static context only)', {
+      length: channelData.customDescription.length
     });
-    logger.debug('Added custom description chunk', { length: channelData.customDescription.length });
   }
 
   // 3. Wikipedia summary (background information)

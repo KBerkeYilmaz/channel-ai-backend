@@ -8,6 +8,12 @@ const envSchema = z.object({
   // Database (optional for development)
   DATABASE_URL: z.string().optional(),
   
+  // Redis (required for job storage)
+  REDISHOST: z.string().optional(),
+  REDISPORT: z.string().optional(),
+  REDISPASSWORD: z.string().optional(),
+  REDISUSER: z.string().optional(),
+  
   // AI Services (optional for development)
   OPENAI_API_KEY: z.string().optional(),
   GOOGLE_API_KEY: z.string().optional(),
