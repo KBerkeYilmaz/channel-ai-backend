@@ -270,15 +270,15 @@ process.post('/creator', async (c) => {
       }, 'Using existing creator (reprocessing)');
     }
 
-    // Generate chat URL (assuming chat-bot runs on a subdomain or different domain)
-    const chatUrl = `${Bun.env.CHAT_BOT_URL || 'http://localhost:3002'}/c/${slug}`;
+    // Generate chat URL using channelId (guaranteed unique, prevents slug collisions)
+    const chatUrl = `${Bun.env.CHAT_BOT_URL || 'http://localhost:3002'}/c/${channelId}`;
 
     // Create job
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const job: ProcessingJob = {
       jobId,
       creatorId: actualCreatorId,
-      creatorSlug: slug,
+      creatorSlug: slug, // Keep slug for metadata/display
       channelUrl,
       chatUrl,
       status: 'queued',
