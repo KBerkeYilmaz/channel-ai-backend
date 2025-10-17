@@ -36,7 +36,7 @@ if (env.NODE_ENV === 'development') {
 
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
   const client = await clientPromise;
-  const db = client.db('creator-ai');
+  const db = client.db('channel_ai');
 
   // OPTIMIZATION: Ensure indexes exist for performance
   await ensureIndexes(db);

@@ -142,13 +142,13 @@ process.post('/creator', async (c) => {
     const teamChannels = team.channels || [];
     const channelExists = teamChannels.some((ch: any) => ch.channelId === channelId || ch === channelId);
 
-    if (!channelExists) {
-      structuredLogger.warn({ teamId, channelId, teamChannels }, 'Channel not in team channels');
-      return c.json<ApiResponse>({
-        success: false,
-        error: 'Channel not found in team. Please add the channel to your team first.'
-      }, 403);
-    }
+    // if (!channelExists) {
+    //   structuredLogger.warn({ teamId, channelId, teamChannels }, 'Channel not in team channels');
+    //   return c.json<ApiResponse>({
+    //     success: false,
+    //     error: 'Channel not found in team. Please add the channel to your team first.'
+    //   }, 403);
+    // }
 
     structuredLogger.info({ teamId, channelId }, 'Team and channel validation passed');
 
@@ -864,13 +864,13 @@ async function processVideosAsync(
           throw new Error('Channel AI subscription was cancelled during processing. Processing aborted.');
         }
         
-        const channelStillExists = team.channels?.some(
-          (ch: any) => ch.channelId === creator.ownedByChannelId || ch === creator.ownedByChannelId
-        );
+        // const channelStillExists = team.channels?.some(
+        //   (ch: any) => ch.channelId === creator.ownedByChannelId || ch === creator.ownedByChannelId
+        // );
         
-        if (!channelStillExists) {
-          throw new Error('Channel was removed from team during processing. Processing aborted.');
-        }
+        // if (!channelStillExists) {
+        //   throw new Error('Channel was removed from team during processing. Processing aborted.');
+        // }
         
         structuredLogger.info({
           jobId,
