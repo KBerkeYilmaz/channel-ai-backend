@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import type { ApiResponse, Creator, ChannelAIProcessing } from '../types';
 import { structuredLogger } from '../middleware/logger';
 import { connectToDatabase, connectToOrgsDatabase, connectToPrismaDatabase } from '../lib/mongodb';
@@ -446,6 +447,9 @@ async function processVideosAsync(
   const job = await jobStore.get(jobId);
   if (!job) return;
 
+  // Generate a unique document ID upfront (Prisma-compatible UUID)
+  const documentId = randomUUID();
+
   try {
     job.status = 'processing';
     job.startedAt = new Date();
@@ -463,6 +467,7 @@ async function processVideosAsync(
         const { db: prismaDb } = await connectToPrismaDatabase();
         
         const processingStartRecord: ChannelAIProcessing = {
+          _id: documentId, // Add _id field
           channelId: creator.ownedByChannelId,
           teamId: creator.ownedByTeamId,
           creatorId,
@@ -482,7 +487,8 @@ async function processVideosAsync(
         await prismaDb.collection<ChannelAIProcessing>('ChannelAIProcessing').updateOne(
           { 
             channelId: creator.ownedByChannelId, 
-            teamId: creator.ownedByTeamId 
+            teamId: creator.ownedByTeamId,
+            jobId: jobId
           },
           { 
             $set: processingStartRecord,
@@ -978,6 +984,7 @@ async function processVideosAsync(
         const { db: prismaDb } = await connectToPrismaDatabase();
         
         const processingRecord: ChannelAIProcessing = {
+          _id: documentId, // Add _id field
           channelId: creator.ownedByChannelId,
           teamId: creator.ownedByTeamId,
           creatorId,
@@ -1007,7 +1014,8 @@ async function processVideosAsync(
         await prismaDb.collection<ChannelAIProcessing>('ChannelAIProcessing').updateOne(
           { 
             channelId: creator.ownedByChannelId, 
-            teamId: creator.ownedByTeamId 
+            teamId: creator.ownedByTeamId, 
+            jobId: jobId 
           },
           { 
             $set: processingRecord,
@@ -1056,6 +1064,7 @@ async function processVideosAsync(
         const { db: prismaDb } = await connectToPrismaDatabase();
         
         const failedRecord: Omit<ChannelAIProcessing, 'errorCount'> = {
+          _id: documentId, // Add _id to failedRecord
           channelId: creator.ownedByChannelId,
           teamId: creator.ownedByTeamId,
           creatorId,
@@ -1084,7 +1093,8 @@ async function processVideosAsync(
         await prismaDb.collection<ChannelAIProcessing>('ChannelAIProcessing').updateOne(
           { 
             channelId: creator.ownedByChannelId, 
-            teamId: creator.ownedByTeamId 
+            teamId: creator.ownedByTeamId,
+            jobId: jobId
           },
           { 
             $set: failedRecord,
